@@ -119,19 +119,6 @@ def redcap_field_fetch(project):
     data = project.export_records(format='json')
     return data
 
-def replace_sex(document, data):
-    """
-    Replaces his/her with appropriate pronoun based on gender
-    :param document: docx.Document object
-    :param data: dict structure derived from json list. Contains key value pairs
-    :return document: docx.Document object
-    """
-    for para in document.paragraphs:
-        if not data.get('dl_sex')==None:
-            para.text = para.text.replace('his/her', 'her') if data.get('dl_sex')=='0' \
-                    else para.text.replace('his/her', 'his')
-    return document
-
 def add_to_parser():
     """
     Method to add arguments to default parser for Document generator.
