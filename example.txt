@@ -1,0 +1,1 @@
+python main.py -k C******************* -r dl_first_name,dl_last_name,dl_sex,dl_wj_lwid_ss_grade -f /home/local/VANDERBILT/ramadak/Downloads/template_document.docx -p DL5001,DL5003 -d ~/DeclarativeLearningStudy/
