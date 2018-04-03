@@ -146,7 +146,7 @@ def add_to_parser():
                         help='Bool for if replacement word and redcap field have same string')
     parser.add_argument("-f","--file", dest='file',default=None, help='Path to template document')
     parser.add_argument("-p","--participant", dest='participant_id', default=None,\
-                                help='Participant Id')
+                        help='Participant Id')
     parser.add_argument("-d","--dest", dest='destination', default=None, \
                         help='Destination for output files')
     return parser
