@@ -42,12 +42,22 @@ def replace_field(data,document,participant,OPTIONS):
     replacements = splitter(OPTIONS.replacement)
     for replacement in replacements:
         for para in document.paragraphs:
-            if "sex" in replacement:
-                para.text = para.text.replace('his/her', 'her') if data.get(replacement)=='0' \
-                                    else para.text.replace('his/her', 'his')
+            if "sex" in replacement:                #replace his/her with appropriate pronoun
+                if('his/her' in para.text):
+                    inline = para.runs
+                    for i in range(len(inline)):
+                        if( 'his/her' in inline[i].text):
+                            text = inline[i].text.replace('his/her', 'her') \
+                                if data.get(replacement)=='0' \
+                                else inline[i].text.replace('his/her', 'his')
+                            inline[i].text=text 
             else:
-                para.text = para.text.replace(replacement,data.get(replacement)) if not \
-                    data.get(replacement)==None else para.text.replace(replacement,'NA')
+                if replacement in para.text:        #replace field
+                    inline = para.runs
+                    for i in range(len(inline)):
+                        if replacement in inline[i].text:
+                            text = inline[i].text.replace(replacement, data.get(replacement))
+                            inline[i].text = text
         doc = replace_in_tables(data, document, replacement)
         save_doc(doc,OPTIONS.destination,participant)
     return document
