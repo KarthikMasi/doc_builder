@@ -1,4 +1,4 @@
-redcap_report_generate.py
+redcap_report_generate
 setup.py
 redcap_report_generator.egg-info/PKG-INFO
 redcap_report_generator.egg-info/SOURCES.txt
