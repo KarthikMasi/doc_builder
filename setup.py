@@ -1,8 +1,8 @@
 from setuptools import setup
 
 setup(
-    name='doc_builder_ebrl',
-    version='0.1',
-    scripts=['main.py'],
+    name='redcap_report_generator',
+    version='0.1.0',
+    scripts=['redcap_report_generate.py'],
     install_requires=['PyCap','python-docx','argparse']
 )

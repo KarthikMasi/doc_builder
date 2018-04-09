@@ -135,12 +135,10 @@ def add_to_parser():
 
     :return: parser object with new arguments
     """
-    parser = argparse.ArgumentParser(prog='DecLearn', description="Document Generator")
+    parser = argparse.ArgumentParser(prog='redcap_report_generate', description="Document Generator")
     parser.add_argument("-k","--key", dest='redcap_key', default=None, help='Redcap API Token')
-    parser.add_argument("-r","--replace", dest='replacement',default=None, help='Combination of  \
-                        words to be replaced followed by redcap field name')
-    parser.add_argument("-s", "--same", dest ='same',default=None, action="store_true",\
-                        help='Bool for if replacement word and redcap field have same string')
+    parser.add_argument("-r","--replace", dest='replacement',default=None, help=' \
+                       words to be replaced')
     parser.add_argument("-f","--file", dest='file',default=None, help='Path to template document')
     parser.add_argument("-p","--participant", dest='participant_id', default=None,\
                         help='Participant Id')
