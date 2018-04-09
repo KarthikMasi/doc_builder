@@ -135,7 +135,7 @@ def add_to_parser():
 
     :return: parser object with new arguments
     """
-    parser = argparse.ArgumentParser(prog='redcap_report_generate', description="Document Generator")
+    parser = argparse.ArgumentParser(prog='redcap_report_generate', description="REDCap Report Generator")
     parser.add_argument("-k","--key", dest='redcap_key', default=None, help='Redcap API Token')
     parser.add_argument("-r","--replace", dest='replacement',default=None, help=' \
                        words to be replaced')
