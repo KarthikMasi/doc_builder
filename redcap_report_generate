@@ -18,8 +18,8 @@ def redcap_project_access(API_KEY):
 def participant_filter(project,OPTIONS):
     """
     Filter participant data from export data. 
-    :param data: json object containing list of  dicts
-    :param participant_id: parsed from user
+    :param project: redcap.Project object
+    :param OPTIONS: parsed from user
     no return
     """
     data = redcap_field_fetch(project)
@@ -34,9 +34,10 @@ def replace_field(data,document,participant,OPTIONS):
     """
     Loops through the document and replaces the field string with
     appropriate values from redcap form
-    :param project: redcap.Project Object
-    :param field: string object to search for in template document
-    :param replacement: string of redcap field variable name
+    :param data: json object
+    :param document: docx document object
+    :param participant: participant ID value
+    :param OPTIONS: arguments parsed from user
     :return: docx.Document object
     """
     replacements = splitter(OPTIONS.replacement)
@@ -60,12 +61,13 @@ def replace_field(data,document,participant,OPTIONS):
                             inline[i].text = text
         doc = replace_in_tables(data, document, replacement)
         save_doc(doc,OPTIONS.destination,participant)
+        #upload_to_redcap(document,participant,OPTIONS)
     return document
 
 def splitter(option):
     """
-    Splits participant id's by ','
-    :param participant_id: args parsed from user
+    Splits arguments by ','
+    :param option: args parsed from user
     :return: list containing participants
     """
     if not option:
@@ -78,18 +80,27 @@ def save_doc(document,destination,participant_id):
     Saves document with replaced fields with participant id as filename
     :param document: docx.document object
     :param destination: args parsed from user
-    :param participant_id: participant id of user
+    :param participant_id: participant id value
     no return
     """
     filename = destination+'/'+participant_id+'.docx'
     document.save(filename)
 
+def upload_to_redcap(document,participant_id, OPTIONS):
+    """
+    Uploads the report back to redcap
+    :param document: docx.document object
+    :param participant_id: participant id value
+    :param OPTIONS: arguments 
+    """
+    
+
 def replace_in_tables(data,document,replacement):
     """
     Loops through tables in the document and replaces the field string with
     the replacement data from redcap form
-    :param project: redcap.Project Object
-    :param field: string object to search for in template document
+    :param data: json object
+    :param document: docx document object
     :param replacement: string of redcap field variable name
     :return: docx.Document object
     """
@@ -104,9 +115,8 @@ def replace_in_tables(data,document,replacement):
 def document_template_open(file_path):
     """
     Opens the document template used for document generation
-    :param doc_name: filename of template document
-    :param doc_path: to template document
-    :return: True if file exists
+    :param filepath: path to template document
+    :return: Document if exists
     """
     if os.path.exists(file_path):
         document = Document(file_path)
@@ -120,10 +130,6 @@ def redcap_field_fetch(project):
     Exports data from the redcap form associated with the API Key. 
     Only the fields mentioned are pulled.
     :param project: redcap.Project object
-    :param fields: fields from the redcap form that are
-                   required in the document. By default, it is the global variable 
-                   where the fields are mentioned. In case of new document, just change the 
-                   fields accordingly
     :return:json object with a list of dicts. Each participant info is a dict
     """
     data = project.export_records(format='json')
@@ -144,6 +150,8 @@ def add_to_parser():
                         help='Participant Id')
     parser.add_argument("-d","--dest", dest='destination', default=None, \
                         help='Destination for output files')
+    parser.add_argument("-u","--uploadTo", dest='upload', default=None, \
+                        help='Redcap field where generated document is to be uploaded to')
     return parser
 
 def run_document_generator():
