@@ -28,12 +28,13 @@ def participant_filter(project,OPTIONS):
         for participant in participant_id:
             if(participant in participant_data.values()):
                 document = document_template_open(OPTIONS.file) 
-                doc = replace_field(participant_data,document,participant,OPTIONS)
+                doc = replace_field(project,participant_data,document,participant,OPTIONS)
 
-def replace_field(data,document,participant,OPTIONS):
+def replace_field(project,data,document,participant,OPTIONS):
     """
     Loops through the document and replaces the field string with
     appropriate values from redcap form
+    :param project: REDCap project
     :param data: json object
     :param document: docx document object
     :param participant: participant ID value
@@ -62,7 +63,7 @@ def replace_field(data,document,participant,OPTIONS):
         doc = replace_in_tables(data, document, replacement)
         save_doc(doc,OPTIONS.destination,participant)
         if OPTIONS.upload:
-            upload_to_redcap(document,participant,OPTIONS)
+            upload_to_redcap(project,document,participant,OPTIONS)
     return document
 
 def splitter(option):
@@ -87,15 +88,16 @@ def save_doc(document,destination,participant_id):
     filename = destination+'/'+participant_id+'.docx'
     document.save(filename)
 
-def upload_to_redcap(document,participant_id, OPTIONS):
+def upload_to_redcap(project,document,participant_id, OPTIONS):
     """
     Uploads the report back to redcap
+    :param project: redcap project object
     :param document: docx.document object
     :param participant_id: participant id value
     :param OPTIONS: arguments 
     """
     filename = ''+participant_id+'.docx'
-    import_file(participant_id,OPTIONS.upload,filename,document)
+    project.import_file(participant_id,OPTIONS.upload,filename,document)
 
 def replace_in_tables(data,document,replacement):
     """
