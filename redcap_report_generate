@@ -94,7 +94,7 @@ def upload_to_redcap(document,participant_id, OPTIONS):
     :param participant_id: participant id value
     :param OPTIONS: arguments 
     """
-    filename = ''+participant_id+'_DecLearn'+'.docx'
+    filename = ''+participant_id+'.docx'
     import_file(participant_id,OPTIONS.upload,filename,document)
 
 def replace_in_tables(data,document,replacement):
