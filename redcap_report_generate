@@ -59,14 +59,13 @@ def replace_field(project,data,document,participant,OPTIONS):
                     for i in range(len(inline)):
                         if replacement in inline[i].text:
                             if(data.get(replacement) != ""):
+                                print(data.get(replacement))
                                 text = inline[i].text.replace(replacement, data.get(replacement))
                                 inline[i].text = text
                                 doc = replace_in_tables(data, document, replacement)
                                 save_doc(doc,OPTIONS.destination,participant)
-                            else:
-                                print("Value incomplete in REDCap")
-        if OPTIONS.upload:
-            upload_to_redcap(project,document,participant,OPTIONS)
+                                if OPTIONS.upload:
+                                    upload_to_redcap(project,document,participant,OPTIONS)
     return document
 
 def splitter(option):
