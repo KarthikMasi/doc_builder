@@ -64,8 +64,8 @@ def replace_field(project,data,document,participant,OPTIONS):
                                 inline[i].text = text
                                 doc = replace_in_tables(data, document, replacement)
                                 save_doc(doc,OPTIONS.destination,participant)
-                                if OPTIONS.upload:
-                                    upload_to_redcap(project,document,participant,OPTIONS)
+        if OPTIONS.upload:
+            upload_to_redcap(project,document,participant,OPTIONS)
     return document
 
 def splitter(option):
