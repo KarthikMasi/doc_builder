@@ -59,7 +59,6 @@ def replace_field(project,data,document,participant,OPTIONS):
                     for i in range(len(inline)):
                         if replacement in inline[i].text:
                             if(data.get(replacement) != ""):
-                                print(data.get(replacement))
                                 text = inline[i].text.replace(replacement, data.get(replacement))
                                 inline[i].text = text
                                 doc = replace_in_tables(data, document, replacement)
