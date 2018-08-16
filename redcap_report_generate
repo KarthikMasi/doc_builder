@@ -58,10 +58,13 @@ def replace_field(project,data,document,participant,OPTIONS):
                     inline = para.runs
                     for i in range(len(inline)):
                         if replacement in inline[i].text:
-                            text = inline[i].text.replace(replacement, data.get(replacement))
-                            inline[i].text = text
-        doc = replace_in_tables(data, document, replacement)
-        save_doc(doc,OPTIONS.destination,participant)
+                            if(data.get(replacement) != ""):
+                                text = inline[i].text.replace(replacement, data.get(replacement))
+                                inline[i].text = text
+                                doc = replace_in_tables(data, document, replacement)
+                                save_doc(doc,OPTIONS.destination,participant)
+                            else:
+                                print("Value incomplete in REDCap")
         if OPTIONS.upload:
             upload_to_redcap(project,document,participant,OPTIONS)
     return document
@@ -96,8 +99,13 @@ def upload_to_redcap(project,document,participant_id, OPTIONS):
     :param participant_id: participant id value
     :param OPTIONS: arguments 
     """
-    filename = ''+participant_id+'.docx'
-    project.import_file(participant_id,OPTIONS.upload,filename,document)
+    f = OPTIONS.destination+'/'+participant_id+'.docx'
+    if os.path.exists(f):
+        file = open(f,"r")
+        filename = participant_id+'.docx'
+        project.import_file(participant_id,OPTIONS.upload,filename,file)
+    else:
+        print ("""Check upload file path!!!!!""")
 
 def replace_in_tables(data,document,replacement):
     """
