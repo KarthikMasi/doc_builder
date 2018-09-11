@@ -6,66 +6,32 @@ from docx import Document
 import argparse
 
 
-def redcap_project_access(API_KEY):
-    """
+def redcap_project_access(OPTIONS):
+    """ 
     Gets access to redcap form
     :param API_KEY:String obtained as argparse argument object
     :return: redcap Project object
     """
-    project = redcap.Project('https://redcap.vanderbilt.edu/api/', API_KEY)
+    project = redcap.Project('https://redcap.vanderbilt.edu/api/', OPTIONS.redcap_key)
+    check_longitudinal(project,OPTIONS)
     return project
 
-def participant_filter(project,OPTIONS):
-    """
-    Filter participant data from export data. 
-    :param project: redcap.Project object
+def check_longitudinal(project,OPTIONS):
+    """ 
+    Checks if database is longitudinal and prints appropriate error messages
+    :param project: redcap.Project Object
     :param OPTIONS: parsed from user
     no return
     """
-    data = redcap_field_fetch(project)
-    participant_id = splitter(OPTIONS.participant_id)
-    for participant_data in data:
-        for participant in participant_id:
-            if(participant in participant_data.values()):
-                document = document_template_open(OPTIONS.file) 
-                doc = replace_field(project,participant_data,document,participant,OPTIONS)
-
-def replace_field(project,data,document,participant,OPTIONS):
-    """
-    Loops through the document and replaces the field string with
-    appropriate values from redcap form
-    :param project: REDCap project
-    :param data: json object
-    :param document: docx document object
-    :param participant: participant ID value
-    :param OPTIONS: arguments parsed from user
-    :return: docx.Document object
-    """
-    replacements = splitter(OPTIONS.replacement)
-    for replacement in replacements:
-        for para in document.paragraphs:
-            if "sex" in replacement:                #replace his/her with appropriate pronoun
-                if('his/her' in para.text):
-                    inline = para.runs
-                    for i in range(len(inline)):
-                        if( 'his/her' in inline[i].text):
-                            text = inline[i].text.replace('his/her', 'her') \
-                                if data.get(replacement)=='0' \
-                                else inline[i].text.replace('his/her', 'his')
-                            inline[i].text=text 
-            else:
-                if replacement in para.text:        #replace field
-                    inline = para.runs
-                    for i in range(len(inline)):
-                        if replacement in inline[i].text:
-                            if(data.get(replacement) != ""):
-                                text = inline[i].text.replace(replacement, data.get(replacement))
-                                inline[i].text = text
-                                doc = replace_in_tables(data, document, replacement)
-                                save_doc(doc,OPTIONS.destination,participant)
-        if OPTIONS.upload:
-            upload_to_redcap(project,document,participant,OPTIONS)
-    return document
+    if(project.is_longitudinal()):
+        if OPTIONS.event is None:
+            print("\nERROR: Longitudinal database needs event names \
+                    \nTry \"redcap_report_generate --help\" for help \
+                  ")
+            exit()
+        if(OPTIONS.upload and OPTIONS.uevent is None):
+            print("Event name for upload field missing")
+            exit()
 
 def splitter(option):
     """
@@ -78,49 +44,32 @@ def splitter(option):
     else:
         return option.split(',')
 
-def save_doc(document,destination,participant_id):
-    """
-    Saves document with replaced fields with participant id as filename
-    :param document: docx.document object
-    :param destination: args parsed from user
-    :param participant_id: participant id value
+def participant_filter(project,OPTIONS):
+    """ 
+    Filter participant data from export data. 
+    :param project: redcap.Project object
+    :param OPTIONS: parsed from user
     no return
     """
-    filename = destination+'/'+participant_id+'.docx'
-    document.save(filename)
+    data = redcap_field_fetch(project)
+    participant_id = splitter(OPTIONS.participant_id)
+    for participant_data in data:
+        for participant in participant_id:
+            if(participant in participant_data.values()):
+                document = document_template_open(OPTIONS.file) 
+                doc = replace_field(project,participant_data,document,participant,OPTIONS)
+                if OPTIONS.upload:
+                    upload_to_redcap(project,doc,participant,OPTIONS)
 
-def upload_to_redcap(project,document,participant_id, OPTIONS):
+def redcap_field_fetch(project):
     """
-    Uploads the report back to redcap
-    :param project: redcap project object
-    :param document: docx.document object
-    :param participant_id: participant id value
-    :param OPTIONS: arguments 
+    Exports data from the redcap form associated with the API Key. 
+    All fields are pulled.
+    :param project: redcap.Project object
+    :return:json object with a list of dicts. Each participant info is a dict
     """
-    f = OPTIONS.destination+'/'+participant_id+'.docx'
-    if os.path.exists(f):
-        file = open(f,"r")
-        filename = participant_id+'.docx'
-        project.import_file(participant_id,OPTIONS.upload,filename,file)
-    else:
-        print ("""Check upload file path!!!!!""")
-
-def replace_in_tables(data,document,replacement):
-    """
-    Loops through tables in the document and replaces the field string with
-    the replacement data from redcap form
-    :param data: json object
-    :param document: docx document object
-    :param replacement: string of redcap field variable name
-    :return: docx.Document object
-    """
-    for table in document.tables:
-        for row in table.rows:
-            for cell in row.cells:
-                for para in cell.paragraphs:
-                    para.text = para.text.replace(replacement,data.get(replacement)) if not data.get(replacement)==None \
-                                            else para.text.replace(replacement,'NA')
-    return document
+    data = project.export_records(format='json')
+    return data
 
 def document_template_open(file_path):
     """
@@ -135,15 +84,162 @@ def document_template_open(file_path):
         print ("""Template file doesn't exist: Check filepath and filename provided
         Hint:Also check that suffix of filename is provided eg:docx in filename.docx""")
 
-def redcap_field_fetch(project):
+def replace_field(project,data,document,participant,OPTIONS):
     """
-    Exports data from the redcap form associated with the API Key. 
-    Only the fields mentioned are pulled.
-    :param project: redcap.Project object
-    :return:json object with a list of dicts. Each participant info is a dict
+    Loops through the document and replaces the field string with
+    appropriate values from redcap form. Also has longitudinal
+    capablities.
+    :param project: REDCap project
+    :param data: json object
+    :param document: docx document object
+    :param participant: participant ID value
+    :param OPTIONS: arguments parsed from user
     """
-    data = project.export_records(format='json')
-    return data
+    replacements = splitter(OPTIONS.replacement)
+    for replacement in replacements:
+        document = replace_in_para(data,document,replacement,OPTIONS,participant)
+        file_path = OPTIONS.destination+'/'+participant+'.docx'
+        doc = document_template_open(file_path)
+        doc = replace_in_tables(data,doc,replacement,OPTIONS,participant)
+        document = document_template_open(file_path)
+    return document
+
+def replace_in_para(data,document,replacement,OPTIONS,participant):
+    """
+    Loops through document and replaces the "field_name" string
+    with the values from REDCap form. Has longitudinal capabilities
+    :param data: json object
+    :param document: docx document object
+    :param replacement: REDCap field name
+    :param OPTIONS: arguments parsed from user
+    :param participant: participant ID value
+    :return: docx.Document object
+    """
+    for para in document.paragraphs:
+        if "sex" in replacement or "gender" in replacement:
+            add_pronouns(replacement,para)
+        elif replacement in para.text:
+            inline = para.runs
+            for i in range(len(inline)):
+                if replacement in inline[i].text:
+                    if(get_data(data,replacement,OPTIONS)!=None):
+                        txt = get_data(data,replacement,OPTIONS)
+                        text = inline[i].text.replace(replacement,txt)
+                        inline[i].text = text
+                        document = save_doc(document,OPTIONS.destination,participant)
+    return document
+
+
+def add_pronouns(replacement,para):
+    """
+    To automate choosing pronouns based on sex of participant
+    :param replacement: REDCap field name
+    :param para: Document paragraph object
+    """
+    if('his/her' in para.text):
+        inline = para.runs
+        for i in range(len(inline)):
+            if( 'his/her' in inline[i].text):
+                text = inline[i].text.replace('his/her', 'her') \
+                if data.get(replacement)=='0' \
+                else inline[i].text.replace('his/her', 'his')
+                inline[i].text=text
+ 
+
+def replace_in_tables(data,document,replacement,OPTIONS,participant):
+    """
+    Loops through tables in the document and replaces the field string with
+    the replacement data from redcap form
+    :param data: json object
+    :param document: docx document object
+    :param replacement: string of redcap field variable name
+    :param OPTIONS: arguments parsed from the user.
+    :return: docx.Document object
+    """
+    for table in document.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for para in cell.paragraphs:
+		    if replacement in para.text:        #replace field
+                        inline = para.runs
+                    	for i in range(len(inline)):
+                            if replacement in inline[i].text and check_if_substring(replacement,inline[i].text):
+                                if(get_data(data,replacement,OPTIONS)!= None):
+                                    txt=get_data(data,replacement,OPTIONS)
+                                    if(txt is not None):
+                                        text = inline[i].text.replace(replacement, txt)
+                                        inline[i].text = text
+                                        document = save_doc(document,OPTIONS.destination,participant)
+                                    else:
+                                        text = inline[i].text.replace(replacement,'No value')
+                                        inline[i].text = text
+                                        document= save_doc(document,OPTIONS.destination,participant)
+    return document
+
+def get_data(data,replacement,OPTIONS):
+    """
+    Gets the data corresponding to the field_name 
+    :param data:JSON object with all fields from REDCap
+    :param replacement: replacement text from user (field_name)
+    :param OPTIONS: arguments parsed from user.
+    :return text: string object with field value
+    """
+    if(OPTIONS.event):
+        events = splitter(OPTIONS.event)
+        for event in events:
+            if(data.get('redcap_event_name')==event and data.get(replacement)!=''):
+                text = data.get(replacement)
+                return str(text)
+    else:
+        text = data.get(replacement)
+        return str(text)
+
+def check_if_substring(replacement,text):
+    """
+    Function to avoid swapping substrings
+    eg: For fields with values like "abc123" & "abc12345"
+    :param replacement: replacement text from user
+    :param text: text in templace document
+    :return: boolean
+    """
+    if(len(replacement)==len(text)):
+        return True
+    else:
+        return False
+
+def save_doc(document,destination,participant_id):
+    """
+    Saves document with replaced fields with participant id as filename
+    :param document: docx.document object
+    :param destination: args parsed from user
+    :param participant_id: participant id value
+    :return document: docx.Document object
+    """
+    filename = destination+'/'+participant_id+'.docx'
+    document.save(filename)
+    document = document_template_open(filename)
+    return document
+
+def upload_to_redcap(project,document,participant_id, OPTIONS):
+    """
+    Uploads the report back to redcap
+    :param project: redcap project object
+    :param document: docx.document object
+    :param participant_id: participant id value
+    :param OPTIONS: arguments 
+    """
+    f = OPTIONS.destination+'/'+participant_id+'.docx'
+    if os.path.exists(f):
+        file = open(f,"r")
+        filename = participant_id+'.docx'
+        if OPTIONS.uevent:
+            project.import_file(participant_id,OPTIONS.upload,filename,file,OPTIONS.uevent)
+        else:
+            project.import_file(participant_id,OPTIONS.upload,filename,file)
+    else:
+        print ("""Check upload file path!!!!!""")
+
+
 
 def add_to_parser():
     """
@@ -162,6 +258,10 @@ def add_to_parser():
                         help='Destination for output files')
     parser.add_argument("-u","--uploadTo", dest='upload', default=None, \
                         help='Redcap field where generated document is to be uploaded to')
+    parser.add_argument("-e","--event_name", dest = 'event',default=None, \
+                        help='event name in longitudinal studies only. Supports multiple events')
+    parser.add_argument("--ue","--upload_event_name",dest = 'uevent',default=None,\
+                        help='Event name for upload option')
     return parser
 
 def run_document_generator():
@@ -172,7 +272,7 @@ def run_document_generator():
     """
     parser = add_to_parser()
     OPTIONS = parser.parse_args()
-    project = redcap_project_access(OPTIONS.redcap_key)
+    project = redcap_project_access(OPTIONS)
     participant_filter(project,OPTIONS)
 
 if __name__ == '__main__':
